@@ -1,12 +1,10 @@
-import { login, logout, getInfo } from '@/api/user'
+import { loginApi, logout, getInfo } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
 
 const getDefaultState = () => {
   return {
-    token: getToken(),
-    name: '',
-    avatar: ''
+    user: null //存储 登陆后的用户信息
   }
 }
 
@@ -16,7 +14,7 @@ const mutations = {
   RESET_STATE: (state) => {
     Object.assign(state, getDefaultState())
   },
-  SET_TOKEN: (state, token) => {
+/*   SET_TOKEN: (state, token) => {
     state.token = token
   },
   SET_NAME: (state, name) => {
@@ -24,29 +22,50 @@ const mutations = {
   },
   SET_AVATAR: (state, avatar) => {
     state.avatar = avatar
-  }
+  } */
+  SET_USER: (state, payload) => {
+    state.user = payload;
+  },
 }
 
 const actions = {
   // user login
   login({ commit }, userInfo) {
-    const { username, password } = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
-        const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
-        resolve()
+      loginApi(userInfo).then(res => {
+        const { data } = res;
+        if (data) {
+          // 说明data里面有数据
+          commit('SET_USER', data);
+          resolve();
+        } else {
+          reject(res);
+        }
       }).catch(error => {
         reject(error)
       })
     })
   },
 
-  // get user info
+  // 恢复登录状态
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
-      getInfo(state.token).then(response => {
+      // 发送请求
+      getInfo().then(res => {
+        if (typeof res === 'string') {
+          // 说明token已经过期或者未登录
+          res = JSON.parse(res); // 转成对象
+          if (res.code === 401) {
+            reject(res.msg);
+          }
+        } else {
+          // 说明这个token没问题，将用户信息放入仓库
+          commit('SET_USER', res.data);
+          resolve();
+        }
+      })
+
+/*       getInfo(state.token).then(response => {
         const { data } = response
 
         if (!data) {
@@ -60,21 +79,25 @@ const actions = {
         resolve(data)
       }).catch(error => {
         reject(error)
-      })
+      }) */
     })
   },
 
   // user logout
   logout({ commit, state }) {
     return new Promise((resolve, reject) => {
-      logout(state.token).then(() => {
+      removeToken() // must remove  token  first
+      resetRouter()
+      commit('RESET_STATE')
+      resolve()
+/*       logout(state.token).then(() => {
         removeToken() // must remove  token  first
         resetRouter()
         commit('RESET_STATE')
         resolve()
       }).catch(error => {
         reject(error)
-      })
+      }) */
     })
   },
 

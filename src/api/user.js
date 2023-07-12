@@ -1,24 +1,26 @@
 import request from '@/utils/request'
 
-export function login(data) {
+export function loginApi(data) {
   return request({
-    url: '/vue-admin-template/user/login',
+    url: '/api/admin/login',
     method: 'post',
     data
   })
 }
 
-export function getInfo(token) {
+// 恢复登录
+export function getInfo() {
   return request({
-    url: '/vue-admin-template/user/info',
+    url: '/api/admin/whoami',
     method: 'get',
-    params: { token }
   })
 }
 
-export function logout() {
+// 更新管理员信息
+export function setUser(data) {
   return request({
-    url: '/vue-admin-template/user/logout',
-    method: 'post'
+    url: '/api/admin',
+    method: 'put',
+    data
   })
 }
